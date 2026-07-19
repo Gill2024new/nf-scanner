@@ -185,13 +185,11 @@ textarea.form-input { resize: vertical; }
   <div id="tab-scanner">
     <div class="card">
       <div class="card-title">📷 Escanear Nota Fiscal</div>
-      <div class="scanner-area" id="scannerArea" onclick="document.getElementById('fileInput').click()" style="cursor:pointer">
+      <div class="scanner-area" id="scannerArea" style="cursor:pointer">
         <div class="scanner-icon">📄</div>
         <div class="scanner-text">Clique aqui para escolher imagem<br><small style="color:#8090B0">Suporta NF-e com QR Code e notas impressas</small></div>
       </div>
-      <input type="file" id="fileInput" accept="image/*" style="display:none">
-      <button class="btn btn-secondary" onclick="document.getElementById('cameraInput').click()">📸 Abrir Câmera</button>
-      <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFile(event)">
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/gif,image/*" style="margin-top:10px;width:100%">
       <button class="btn btn-primary" id="btnAnalisar" style="display:none;margin-top:10px">🔍 Analisar Nota</button>
       <div id="processingArea" style="display:none">
         <div class="processing"><div class="spinner"></div><span id="processingText" style="font-size:13px;color:var(--text);font-weight:500">Analisando nota...</span></div>
@@ -338,8 +336,15 @@ let chartMes = null, chartForn = null;
 // ======= INIT =======
 document.addEventListener('DOMContentLoaded', () => {
   // Configurar input de arquivo
-  document.getElementById('fileInput').addEventListener('change', handleFile);
-  document.getElementById('cameraInput').addEventListener('change', handleFile);
+  const fi = document.getElementById('fileInput');
+  if (fi) {
+    fi.addEventListener('change', function() {
+      if (this.files && this.files[0]) handleFile({target: this});
+    });
+  }
+  document.getElementById('scannerArea').addEventListener('click', function() {
+    document.getElementById('fileInput').click();
+  });
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('mData').value = hoje;
   const mesAtras = new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0];
