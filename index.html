@@ -185,11 +185,11 @@ textarea.form-input { resize: vertical; }
   <div id="tab-scanner">
     <div class="card">
       <div class="card-title">📷 Escanear Nota Fiscal</div>
-      <label for="fileInput" class="scanner-area" id="scannerArea">
+      <div class="scanner-area" id="scannerArea" onclick="document.getElementById('fileInput').click()" style="cursor:pointer">
         <div class="scanner-icon">📄</div>
         <div class="scanner-text">Clique aqui para escolher imagem<br><small style="color:#8090B0">Suporta NF-e com QR Code e notas impressas</small></div>
-      </label>
-      <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)" style="display:none">
+      </div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
       <button class="btn btn-secondary" onclick="document.getElementById('cameraInput').click()">📸 Abrir Câmera</button>
       <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFile(event)">
       <button class="btn btn-primary" id="btnAnalisar" style="display:none;margin-top:10px">🔍 Analisar Nota</button>
@@ -337,6 +337,9 @@ let chartMes = null, chartForn = null;
 
 // ======= INIT =======
 document.addEventListener('DOMContentLoaded', () => {
+  // Configurar input de arquivo
+  document.getElementById('fileInput').addEventListener('change', handleFile);
+  document.getElementById('cameraInput').addEventListener('change', handleFile);
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('mData').value = hoje;
   const mesAtras = new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0];
@@ -372,11 +375,12 @@ function setTab(tab) {
 function handleFile(e) {
   const file = e.target.files[0];
   if (!file) return;
+  
   const reader = new FileReader();
-  reader.onload = async (ev) => {
+  reader.onload = function(ev) {
     const img = new Image();
-    img.onload = async () => {
-      // Comprimir imagem para max 800px
+    img.onload = function() {
+      // Comprimir para 800px
       const MAX = 800;
       let w = img.width, h = img.height;
       if (w > MAX || h > MAX) {
@@ -386,31 +390,30 @@ function handleFile(e) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const compressed = canvas.toDataURL('image/jpeg', 0.7);
-
-      document.getElementById('scannerArea').innerHTML = '<img src="' + compressed + '" style="width:100%;height:100%;object-fit:cover;border-radius:10px">';
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      
+      // Mostrar preview
+      const area = document.getElementById('scannerArea');
+      area.innerHTML = '<img src="' + compressed + '" style="width:100%;height:100%;object-fit:contain;border-radius:10px">';
+      
       document.getElementById('alertArea').innerHTML = '';
       document.getElementById('formScanCard').style.display = 'none';
-
+      
+      // Mostrar botão analisar
       const btn = document.getElementById('btnAnalisar');
       btn.style.display = 'block';
-      btn.onclick = async () => {
+      btn.onclick = function() {
         btn.style.display = 'none';
-        // Verificar QR Code na imagem original
-        const c2 = document.createElement('canvas');
-        c2.width = img.width; c2.height = img.height;
-        c2.getContext('2d').drawImage(img, 0, 0);
-        const imageData = c2.getContext('2d').getImageData(0, 0, c2.width, c2.height);
-        const qr = jsQR(imageData.data, imageData.width, imageData.height);
-        showProcessing(true, qr ? 'QR Code detectado...' : 'Analisando com IA...');
-        if (qr) await processarQR(qr.data, compressed);
-        else await processarOCR(compressed);
+        showProcessing(true, 'Analisando nota com IA...');
+        processarOCR(compressed);
       };
+    };
+    img.onerror = function() {
+      alert('Erro ao carregar imagem. Tente outra foto.');
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
-  e.target.value = '';
 }
 
 async function processarOCR(imgBase64) {
