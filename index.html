@@ -424,27 +424,22 @@ function handleFile(e) {
 async function processarOCR(imgBase64) {
   try {
     const b64 = imgBase64.split(',')[1];
-    const mimeType = imgBase64.split(';')[0].split(':')[1] || 'image/jpeg';
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://nf-proxy.gill-alexandre-new.workers.dev/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key':  + CLAUDE_KEY + ,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: mimeType, data: b64 } },
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
           { type: 'text', text: 'Analise esta nota fiscal brasileira e extraia os dados. Retorne SOMENTE JSON valido sem markdown: {"fornecedor":"nome da empresa","cnpj":"00.000.000/0000-00","numero":"numero da nota","data":"YYYY-MM-DD","valor":0.00,"itens":"lista dos itens"}. Se nao for nota fiscal retorne: {"erro":"nao_e_nota"}' }
         ]}]
       })
     });
     const data = await resp.json();
-    if (!resp.ok) {
-      mostrarFormVazio(imgBase64, 'Erro ' + resp.status + ': ' + (data.error&&data.error.message||'falha na API') + '. Preencha manualmente.');
+    if (!resp.ok || data.error) {
+      const msg = (data.error && data.error.message) || ('Erro ' + resp.status);
+      mostrarFormVazio(imgBase64, 'Erro: ' + msg + '. Preencha manualmente.');
       showProcessing(false);
       return;
     }
